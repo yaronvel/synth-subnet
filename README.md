@@ -5,7 +5,9 @@ The validator evaluates the miners' probabilistic forecasts using the Continuous
 ### Application of CRPS to Ensemble Forecasts
 In our setup, miners produce ensemble forecasts by generating a finite number of simulated price paths rather than providing an explicit continuous distribution. The CRPS can be calculated directly from these ensemble forecasts using an empirical formula suitable for finite samples.
 For a single observation $x$ and an ensemble forecast consisting of $N$ members $y_1, y_2, ..., y_N$, the CRPS is calculated as:
+
 ![Equation](docs/images/crps_equation.png)
+
 where:
 - $F$ is the empirical cumulative distribution function (CDF) represented by the ensemble forecasts
 - The first term measures the average absolute difference between the ensemble members and the observation
@@ -19,31 +21,31 @@ For each time increment:
 ## 3. Allocation of Prize Money
 Each day, a fixed amount of prize money (e.g., $1000) is distributed among miners based on their performance.
 ### Normalization Using Softmax Function
-After calculating the CRPS scores, the validator normalizes these scores daily. The normalized score $S_i$ for miner $i$ is calculated as:
-$$
-S_i = \frac{e^{-\beta \cdot CRPS_i}}{\sum_j e^{-\beta \cdot CRPS_j}}
-$$
+After calculating the CRPS scores, the validator normalizes these scores daily. The normalized score $S_i$ for miner $i$ is calculated as:  
+
+![Equation](docs/images/normalized_score.png)  
+
 where:
 - $CRPS_i$ is the total CRPS score for miner $i$ on that day
 - $\beta = \frac{1}{1000}$ is the scaling factor
 - The negative sign ensures better forecasts (lower CRPS) receive higher scores
 ### Simple Moving Average (SMA) of Scores
-The SMA for miner $i$ on day $t$ is calculated as:
-$$
-SMA_{i,t} = \frac{1}{n_t}\sum_{k=0}^{n_t-1} S_{i,t-k}
-$$
+The SMA for miner $i$ on day $t$ is calculated as:  
+
+![Equation](docs/images/sma.png)  
+
 where:
 - $n_t = min(t,n)$ is the number of days included
 - $S_{i,t-k}$ is the normalized score of miner $i$ on day $t-k$
 ### Prize Distribution Based on SMA
-Adjusted Scores:
-$$
-AdjScore_{i,t} = (SMA_{i,t})^\alpha
-$$
-Prize Allocation:
-$$
-P_{i,t} = \frac{AdjScore_{i,t}}{\sum_j AdjScore_{j,t}} \times Total
-$$
+Adjusted Scores:  
+
+![Equation](docs/images/adjusted_score.png)  
+
+Prize Allocation:  
+
+![Equation](docs/images/prize_allocation.png)  
+
 ## 4. Simulating a Collection of Miners with Different Models
 ### Price Simulation Model
 Miners use a stochastic process, incorporating:
