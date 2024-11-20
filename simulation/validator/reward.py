@@ -20,7 +20,7 @@ import numpy as np
 from typing import List, Any
 import bittensor as bt
 
-from crps_calculation import calculate_crps_for_miner
+from simulation.validator.crps_calculation import calculate_crps_for_miner
 from simulation import simulation_input
 from simulation.simulation_input import SimulationInput
 from simulation.simulations.price_simulation import get_asset_price, generate_real_price_path
@@ -37,7 +37,7 @@ def reward(response: np.ndarray[Any, np.dtype], miner_uid: int, simulation_input
 
     score = calculate_crps_for_miner(
         miner_uid,
-        response, # pridiction results of a miner with uuid - "miner_uid"
+        response, # prediction results of a miner with uuid - "miner_uid"
         real_price_path, # real prices data
         simulation_input.time_increment, # we can hard-code it to 5 min
         simulation_input.time_length # we can hard-code it to 1 day
