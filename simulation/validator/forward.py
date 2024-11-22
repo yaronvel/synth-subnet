@@ -22,18 +22,18 @@ from datetime import datetime
 
 import bittensor as bt
 
-import simulation.protocol
 from simulation.protocol import Simulation
 from simulation.simulation_input import SimulationInput
 from simulation.validator.miner_data_handler import MinerDataHandler
 from simulation.validator.reward import get_rewards
 from simulation.utils.uids import get_random_uids
+from simulation.base.validator import BaseValidatorNeuron
 
 
 miner_data_handler = MinerDataHandler("predictions_data.json")
 
 
-async def forward(self):
+async def forward(self: BaseValidatorNeuron):
     """
     The forward function is called by the validator every time step.
 
@@ -60,7 +60,7 @@ async def forward(self):
     # synapse - is a message that validator sends to miner to get results, i.e. simulation_input in our case
     # Simulation - is our protocol, i.e. input and output message of a miner (application that returns prediction of
     # prices for a chosen asset)
-    synapse = simulation.protocol.Simulation(
+    synapse = Simulation(
         simulation_input=simulation_input
     )
 
@@ -88,7 +88,7 @@ async def forward(self):
     # Log the results for monitoring purposes.
     bt.logging.info(f"Received responses: {responses}")
 
-    current_time = datetime.now().isoformat()
+    current_time = datetime.now()
     for i, response in enumerate(responses):
         miner_id = miner_uids[i]
         miner_data_handler.set_values(miner_id, current_time, response)
@@ -98,7 +98,7 @@ async def forward(self):
     # this is the function we need to implement for our incentives mechanism,
     # it returns an array of floats that determines how good a particular miner was at price predictions:
     # example: [0.2, 0.8, 0.1] - you can see that the best miner was 2nd, and the worst 3rd
-    rewards = get_rewards(self, miner_data_handler=miner_data_handler, simulation_input=simulation_input, miner_uids=miner_uids.tolist(), validation_time=current_time)
+    rewards = get_rewards(miner_data_handler=miner_data_handler, simulation_input=simulation_input, miner_uids=miner_uids.tolist(), validation_time=current_time)
 
     bt.logging.info(f"Scored responses: {rewards}")
 
