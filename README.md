@@ -156,3 +156,192 @@ The system creates a competitive environment through:
 
 5. **Calculating Leaderboard Scores and Allocating Emissions**
    - Rewards consistent performance and encourages competition
+
+
+## Environment Setup Instructions
+
+### Step 1: Create a Wallet
+You can create a single wallet or multiple wallets, depending on how many miners or validators you intend to run.  
+There is no functional difference between wallets for miners or validators, and you can name them as you prefer.
+
+#### Create a Miner Wallet
+- create a coldkey
+```
+btcli wallet new_coldkey --wallet.name miner
+```
+
+- create a hotkey
+```
+btcli wallet new_hotkey --wallet.name miner --wallet.hotkey default
+```
+
+#### Create a Validator Wallet
+- create a coldkey
+```
+btcli wallet new_coldkey --wallet.name validator
+```
+
+- create a hotkey
+```
+btcli wallet new_hotkey --wallet.name validator --wallet.hotkey default
+```
+
+---
+
+### Step 2: Register Wallet in the Subnet
+Before starting a miner or validator, you must acquire a slot in the subnet. This connects your application to the Bittensor subnet.
+
+Register a miner wallet:
+```
+btcli subnet register --wallet.name miner --wallet.hotkey default --subtensor.network test
+```
+
+Register a validator wallet:
+```
+btcli subnet register --wallet.name validator --wallet.hotkey default --subtensor.network test
+```
+
+---
+
+### Step 3: Verify Registration
+You can check wallet details and verify successful registration in the subnet.
+
+Miner wallet details:
+```
+btcli wallet overview --wallet.name miner --subtensor.network test
+```
+
+Validator wallet details:
+```
+btcli wallet overview --wallet.name validator --subtensor.network test
+```
+
+---
+
+### Step 4: Check Network Metagraph
+You can explore the metagraph of the network for additional insights:
+```
+btcli subnet metagraph --netuid 247 --subtensor.network test
+```
+
+---
+
+### Step 5: Install PM2
+PM2 is recommended for running miner and validator processes.
+
+#### Update and install Node.js and npm:
+```
+sudo apt update
+sudo apt install nodejs npm
+```
+
+#### Install PM2 globally:
+```
+sudo npm install pm2 -g
+```
+
+#### Verify the installation:
+```
+pm2 --version
+```
+
+---
+
+### Step 6: Clone the Synth Repository
+Clone the repository containing the example miner and validator code. This repository also provides a base template you can customize.
+```
+git clone https://github.com/mode-network/synth-subnet.git
+```
+
+---
+
+### Step 7: Set Up Python Virtual Environment
+Install Python 3.9 (ensure no conflicts with existing Python versions, do not uninstall or upgrade if you have the default 3.8 or any other in the system):
+```
+sudo apt install python3.9
+```
+
+Install the venv package:
+```
+sudo apt install python3.9-venv
+```
+
+Create and activate the virtual environment:
+```
+python3.9 -m venv bt_venv
+source bt_venv/bin/activate
+```
+
+Install dependencies:
+```
+pip install -r requirements.txt
+```
+
+Add the current directory to PYTHONPATH to resolve module issues:
+```
+export PYTHONPATH="/home/{your-user}/synth-subnet:$PYTHONPATH"
+```
+
+---
+
+### Step 8: Run a Miner
+Configuration files (`*.config.js`) in the repository define how to start and manage applications with PM2. They allow you to specify application details, environment variables, and runtime configurations.
+
+#### IMPORTANT: Activate the virtual environment before running:
+```
+source bt_venv/bin/activate
+```
+
+Start a miner using the example configuration file:
+```
+pm2 start miner.config.js
+```
+
+Alternatively, use the dummy miner for testing:
+```
+pm2 start miner-dummy.config.js
+```
+
+You can create and run your custom configuration file similarly.
+
+#### PM2 Commands:
+
+To return a list of currently running applications:
+```
+pm2 list
+```
+
+Stop a specific application:
+```
+pm2 stop miner
+```
+
+Restart an application after code changes:
+```
+pm2 start miner
+```
+
+View logs:
+```
+pm2 logs miner
+```
+
+View detailed logs:
+```
+pm2 logs miner --lines 100
+```
+
+---
+
+### Step 9: Run a Validator
+Similar to miners, validators also use `*.config.js` files for configuration.
+
+#### IMPORTANT: Activate the virtual environment before running:
+```
+source bt_venv/bin/activate
+```
+
+Start a validator using the example configuration file:
+```
+pm2 start validator.config.js
+```
