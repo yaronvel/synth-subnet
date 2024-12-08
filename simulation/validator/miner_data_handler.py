@@ -3,18 +3,18 @@ from datetime import datetime, timedelta
 import bittensor as bt
 from sqlalchemy import select
 
-from simulation.db.models import engine, miner_predictions
+from simulation.db.models import engine, miner_predictions, miner_rewards
 
 
 class MinerDataHandler:
 
     @staticmethod
-    def set_values(miner_id, start_time: str, values):
-        """Set values for the given miner_id and start_time."""
+    def set_values(miner_uid, validation_time: str, values):
+        """Set values for the given miner_id and validation_time."""
 
         data = {
-            "miner_uid": miner_id,
-            "start_time": start_time,
+            "miner_uid": miner_uid,
+            "validation_time": validation_time,
             "prediction": values
         }
 
@@ -23,15 +23,42 @@ class MinerDataHandler:
                 with connection.begin():  # Begin a transaction
                     insert_stmt = miner_predictions.insert().values(
                         miner_uid=data["miner_uid"],
-                        start_time=data["start_time"],
+                        validation_time=data["validation_time"],
                         prediction=data["prediction"]
                     )
                     connection.execute(insert_stmt)
         except Exception as e:
-            bt.logging.info("in set_values (got an exception): " + str(e))
+            bt.logging.info(f"in set_values (got an exception): {e}")
 
     @staticmethod
-    def get_values(miner_id: int, current_time_str: str):
+    def set_reward_details(reward_details: [], validation_time: str, start_time: str):
+        rows_to_insert = [
+            {
+                "miner_uid": row["miner_uid"],
+                "validation_time": validation_time,
+                "start_time": start_time,
+                "reward_details": {
+                    "score": row["score"],
+                    "softmax_score": row["softmax_score"],
+                    "crps_data": row["crps_data"]
+                },
+                "reward": row["softmax_score"],
+                "real_prices": row["real_prices"],
+                "prediction": row["predictions"]
+            }
+            for row in reward_details
+        ]
+
+        with engine.begin() as connection:
+            try:
+                insert_stmt = miner_rewards.insert().values(rows_to_insert)
+                connection.execute(insert_stmt)
+            except Exception as e:
+                connection.rollback()
+                bt.logging.info(f"in set_reward_details (got an exception): {e}")
+
+    @staticmethod
+    def get_values(miner_uid: int, current_time_str: str):
         """Retrieve the record with the longest valid interval for the given miner_id."""
         current_time = datetime.fromisoformat(current_time_str)
 
@@ -40,9 +67,9 @@ class MinerDataHandler:
 
         with engine.connect() as connection:
             query = select(miner_predictions.c.prediction).where(
-                miner_predictions.c.start_time >= max_end_time,
-                miner_predictions.c.start_time <= current_time,
-                miner_predictions.c.miner_uid == miner_id
+                miner_predictions.c.validation_time >= max_end_time,
+                miner_predictions.c.validation_time <= current_time,
+                miner_predictions.c.miner_uid == miner_uid
             )
             result = connection.execute(query)
 
@@ -56,11 +83,7 @@ class MinerDataHandler:
             if prediction is None:
                 continue
 
-            start_time = datetime.fromisoformat(prediction[0]["time"])
             end_time = datetime.fromisoformat(prediction[-1]["time"])
-
-            bt.logging.info("in get_values, first: " + start_time.isoformat())
-            bt.logging.info("in get_values, last: " + end_time.isoformat())
 
             if current_time > end_time:
                 if end_time > max_end_time:
