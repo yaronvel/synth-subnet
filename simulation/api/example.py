@@ -1,3 +1,4 @@
+import bittensor
 import bittensor as bt
 
 from simulation.api.get_query_axons import get_query_api_axons
@@ -7,14 +8,16 @@ import asyncio
 
 from simulation.simulation_input import SimulationInput
 from simulation.utils.helpers import get_current_time
+from simulation.utils.config import config
 
 
 # Example usage
-async def test_prediction():
-    wallet = bt.wallet()
+async def test_prediction(args):
+    wallet_name = bittensor.wallet(name=args.name)
+    wallet = bt.wallet(wallet_name.name)
 
     # Fetch the axons of the available API nodes, or specify UIDs directly
-    metagraph = bt.subtensor("finney").metagraph(netuid=247)
+    metagraph = bt.subtensor("test").metagraph(netuid=247)
 
     uids = [uid.item() for uid in metagraph.uids if metagraph.trust[uid] > 0]
 
@@ -45,4 +48,11 @@ async def test_prediction():
 
 
 if __name__ == "__main__":
-    asyncio.run(test_prediction())
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Generate a signature")
+    parser.add_argument("--message", help="The message to sign", type=str)
+    parser.add_argument("--name", help="The wallet name", type=str)
+    args = parser.parse_args()
+
+    asyncio.run(test_prediction(args))

@@ -34,7 +34,7 @@ def reward(
     price_data_provider: PriceDataProvider,
     miner_uid: int,
     simulation_input: SimulationInput,
-    validation_time: str,
+    validator_request_id: int,
 ):
     """
     Reward the miner response to the simulation_input request. This method returns a reward
@@ -44,17 +44,19 @@ def reward(
     - float: The reward value for the miner.
     """
 
-    predictions = miner_data_handler.get_values(miner_uid, validation_time)
+    miner_prediction_id, predictions = miner_data_handler.get_miner_prediction(
+        miner_uid, validator_request_id
+    )
 
     if predictions is None or len(predictions) == 0:
-        return -1, [], [], []  # represents no prediction data from the miner
+        return -1, [], [], None  # represents no prediction data from the miner
 
     # get last time in predictions
     end_time = predictions[0][len(predictions[0]) - 1]["time"]
     real_prices = price_data_provider.fetch_data(end_time)
 
     if len(real_prices) == 0:
-        return -1, [], [], predictions
+        return -1, [], [], miner_prediction_id
 
     # in case some of the time points is not overlapped
     intersecting_predictions = []
@@ -77,7 +79,7 @@ def reward(
         simulation_input.time_increment,
     )
 
-    return score, detailed_crps_data, real_prices, predictions
+    return score, detailed_crps_data, real_prices, miner_prediction_id
 
 
 def get_rewards(
@@ -85,7 +87,7 @@ def get_rewards(
     price_data_provider: PriceDataProvider,
     simulation_input: SimulationInput,
     miner_uids: List[int],
-    validation_time: str,
+    validator_request_id: int,
 ) -> (np.ndarray, []):
     """
     Returns an array of rewards for the given query and responses.
@@ -111,7 +113,7 @@ def get_rewards(
             price_data_provider,
             miner_id,
             simulation_input,
-            validation_time,
+            validator_request_id,
         )
         scores.append(score)
         detailed_crps_data_list.append(detailed_crps_data)

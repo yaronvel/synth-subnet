@@ -18,8 +18,10 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+from datetime import datetime
 
 import bittensor as bt
+import numpy as np
 
 from simulation.base.validator import BaseValidatorNeuron
 from simulation.protocol import Simulation
@@ -27,6 +29,7 @@ from simulation.simulation_input import SimulationInput
 from simulation.utils.helpers import get_current_time, round_time_to_minutes
 from simulation.utils.uids import check_uid_availability
 from simulation.validator.miner_data_handler import MinerDataHandler
+from simulation.validator.moving_average import compute_weighted_averages
 from simulation.validator.price_data_provider import PriceDataProvider
 from simulation.validator.reward import get_rewards
 
@@ -58,12 +61,27 @@ async def forward(
     start_time = round_time_to_minutes(current_time, 60, 60)
 
     miner_uids = []
+    metagraph_info = []
     for uid in range(len(self.metagraph.S)):
         uid_is_available = check_uid_availability(
             self.metagraph, uid, self.config.neuron.vpermit_tao_limit
         )
         if uid_is_available:
+            metagraph_item = {
+                "neuron_uid": uid,
+                "incentive": float(self.metagraph.I[uid]),
+                "rank": float(self.metagraph.R[uid]),
+                "stake": float(self.metagraph.S[uid]),
+                "trust": float(self.metagraph.T[uid]),
+                "emission": float(self.metagraph.E[uid]),
+                "coldkey": self.metagraph.coldkeys[uid],
+                "hotkey": self.metagraph.hotkeys[uid],
+                "updated_at": start_time,
+            }
             miner_uids.append(uid)
+            metagraph_info.append(metagraph_item)
+
+    miner_data_handler.update_metagraph_history(metagraph_info)
 
     # input data
     # give me prediction of BTC price for the next 1 day for every 5 min of time
@@ -104,40 +122,81 @@ async def forward(
     # Log the results for monitoring purposes.
     # bt.logging.info(f"Received responses: {responses}")
 
+    miner_predictions = {}
     for i, response in enumerate(responses):
         if response is None or len(response) == 0:
             continue
         miner_id = miner_uids[i]
-        miner_data_handler.set_values(miner_id, response, simulation_input)
+        miner_predictions[miner_id] = response
+
+    miner_data_handler.save_responses(miner_predictions, simulation_input)
+
+    # scored_time is the same as start_time for a single validator step
+    # but the meaning is different
+    # start_time - is the time when validator asks miners for prediction data
+    #              and stores it in the database
+    # scored_time - is the time when validator calculates rewards using the data
+    #               from the database of previous prediction data
+    scored_time = start_time
+
+    # get latest prediction request from validator
+    # for which we already have real prices data,
+    # i.e. (start_time + time_length) < scored_time
+    validator_request_id = miner_data_handler.get_latest_prediction_request(
+        scored_time, simulation_input
+    )
+    if validator_request_id is None:
+        time.sleep(3600)  # wait for an hour
+        return
 
     # Adjust the scores based on responses from miners.
     # response[0] - miner_uuids[0]
     # this is the function we need to implement for our incentives mechanism,
     # it returns an array of floats that determines how good a particular miner was at price predictions:
-    # example: [0.2, 0.8, 0.1] - you can see that the best miner was 2nd, and the worst 3rd
+    # example: [0.2, 0.7, 0.1] - you can see that the best miner was 2nd, and the worst 3rd
     rewards, rewards_detailed_info = get_rewards(
         miner_data_handler=miner_data_handler,
+        price_data_provider=price_data_provider,
         simulation_input=simulation_input,
         miner_uids=miner_uids,
-        validation_time=start_time,
-        price_data_provider=price_data_provider,
+        validator_request_id=validator_request_id,
     )
 
     bt.logging.info(f"Scored responses: {rewards}")
-    miner_data_handler.set_reward_details(rewards_detailed_info, start_time)
+    miner_data_handler.set_reward_details(
+        reward_details=rewards_detailed_info, scored_time=scored_time
+    )
+
+    # apply custom moving average rewards
+    miner_scores_df = miner_data_handler.get_miner_scores(scored_time, 2)
+    moving_averages_data = compute_weighted_averages(
+        input_df=miner_scores_df,
+        half_life_days=1.0,
+        alpha=2.0,
+        validation_time_str=scored_time,
+    )
+    bt.logging.info(
+        f"Scored responses moving averages: {moving_averages_data}"
+    )
+    if moving_averages_data is None:
+        time.sleep(3600)
+        return
+    miner_data_handler.update_miner_rewards(moving_averages_data)
 
     # Update the scores based on the rewards.
     # You may want to define your own update_scores function for custom behavior.
     filtered_rewards, filtered_miner_uids = remove_zero_rewards(
-        rewards, miner_uids
+        moving_averages_data
     )
-    self.update_scores(filtered_rewards, filtered_miner_uids)
+    self.update_scores(np.array(filtered_rewards), filtered_miner_uids)
     time.sleep(3600)  # wait for an hour
 
 
-def remove_zero_rewards(rewards, miner_uids):
-    mask = rewards != 0
-    filtered_rewards = rewards[mask]
-    filtered_miners_uid = [miner_uids[i] for i in range(len(mask)) if mask[i]]
-
-    return filtered_rewards, filtered_miners_uid
+def remove_zero_rewards(moving_averages_data):
+    miners = []
+    rewards = []
+    for rewards_item in moving_averages_data:
+        if rewards_item["reward_weight"] != 0:
+            miners.append(rewards_item["miner_uid"])
+            rewards.append(rewards_item["reward_weight"])
+    return rewards, miners
