@@ -156,6 +156,13 @@ def add_miner_args(cls, parser):
     )
 
     parser.add_argument(
+        "--blacklist.validator_min_stake",
+        type=int,
+        default=1000,
+        help="Minimum validator stake to accept forward requests from as a miner",
+    )
+
+    parser.add_argument(
         "--wandb.project_name",
         type=str,
         default="template-miners",
@@ -167,13 +174,6 @@ def add_miner_args(cls, parser):
         type=str,
         default="opentensor-dev",
         help="Wandb entity to log to.",
-    )
-
-    parser.add_argument(
-        "--miner_type",
-        type=str,
-        default="default",
-        help="Miner type to choose different implementations",
     )
 
 
@@ -251,13 +251,6 @@ def add_validator_args(cls, parser):
         type=str,
         help="The name of the project where you are sending the new run.",
         default="opentensor-dev",
-    )
-
-    parser.add_argument(
-        "--prediction_history_file",
-        type=str,
-        default="prediction_history.json",
-        help="The file where the history of predictions is stored.",
     )
 
 
