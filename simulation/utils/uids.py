@@ -17,10 +17,12 @@ def check_uid_availability(
     """
     # Filter non serving axons.
     if not metagraph.axons[uid].is_serving:
+        bt.logging.warning(f"uid {uid} is not serving")
         return False
     # Filter validator permit > 1024 stake.
     if metagraph.validator_permit[uid]:
         if metagraph.S[uid] > vpermit_tao_limit:
+            bt.logging.warning(f"uid {uid} is serving too high")
             return False
     # Available otherwise.
     return True
