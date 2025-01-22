@@ -6,18 +6,22 @@
 * [2. Run the Miner](#2-run-the-miner)
 * [3. Appendix](#3-appendix)
   - [3.1. Useful Commands](#31-useful-commands)
-  - [3.2. Troubleshooting](#32-troubleshooting)
+  - [3.2. Running Multiple Miners](#32-running-multiple-miners)
+  - [3.3. Troubleshooting](#33-troubleshooting)
 
 ## 1. Create a Wallet
 
 > 💡 **TIP:** For a more extensive list of the Bittensor CLI commands see [here](https://docs.bittensor.com/btcli).
 
-1. (Optional) If you haven't already, ensure you are running from the Python virtual environment:
+**Step 1: Activate the Python virtual environment**
+
+If you haven't already, ensure you are running from the Python virtual environment:
 ```shell
 source bt_venv/bin/activate
 ```
 
-2. Create the cold/hot wallets:
+**Step 2: Create the cold/hot wallets**
+
 ```shell
 btcli wallet create \
   --wallet.name miner \
@@ -26,15 +30,20 @@ btcli wallet create \
 
 > 🚨 **WARNING:** You must ensure your wallets have enough TAO (0.1 should be sufficient) to be start mining. For testnet, you can use the [`btcli wallet faucet`](https://docs.bittensor.com/btcli#btcli-wallet-faucet).
 
-3. Acquire a slot on the Bittensor subnet by registering the wallet:
+**Step 3: Register wallet**
+
+Acquire a slot on the Bittensor subnet by registering the wallet:
 ```shell
 btcli subnet register \
   --wallet.name miner \
+  --wallet.hotkey default \
   --subtensor.network test \
   --netuid 247
 ```
 
-4. (Optional) Check the wallet has been registered:
+**Step 4: Verify wallet registration (optional)**
+
+Check the wallet has been registered:
 ```shell
 btcli wallet overview \
   --wallet.name miner \
@@ -42,7 +51,7 @@ btcli wallet overview \
   --subtensor.network test
 ```
 
-5. (Optional) Check the network metagraph:
+You can also check the network metagraph:
 ```shell
 btcli subnet metagraph \
   --subtensor.network test \
@@ -53,17 +62,20 @@ btcli subnet metagraph \
 
 ## 2. Run the Miner
 
-1. (Optional) If you haven't already, ensure you are running from the Python virtual environment:
+**Step 1: Activate the Python virtual environment**
+
 ```shell
 source bt_venv/bin/activate
 ```
 
-2. Start PM2 with the miner config:
+**Step 2: Start PM2 with the miner config**
+
 ```shell
 pm2 start miner.config.js
 ```
 
-3. (Optional) Check the miner is running:
+**Step 2: Check the miner is running (optional)**
+
 ```shell
 pm2 list
 ```
@@ -81,7 +93,41 @@ pm2 list
 
 <sup>[Back to top ^][table-of-contents]</sup>
 
-### 3.2. Troubleshooting
+### 3.2. Running Multiple Miners
+
+In order to run multiple miners on the same machine, you must ensure that you correctly edit the `miner.config.js` file to allow for multiple apps. 
+
+Each app **MUST** use a separate wallet (see [here](#1-create-a-wallet) for instructions on how to create a wallet) and it **MUST** use a different port for the `--axon.port` parameter in the start-up script.
+
+An example for a config using multiple miners:
+
+```js
+// miner.config.js
+module.exports = {
+  apps: [
+    {
+      name: 'miner-1',
+      script: 'python3',
+      args: './neurons/miner.py --netuid 247 --logging.debug --logging.trace --subtensor.network test --wallet.name miner_1 --wallet.hotkey default --axon.port 8091',
+      env: {
+        PYTHONPATH: '.'
+      },
+    },
+    {
+      name: 'miner-2',
+      script: 'python3',
+      args: './neurons/miner.py --netuid 247 --logging.debug --logging.trace --subtensor.network test --wallet.name miner_2 --wallet.hotkey default --axon.port 8092',
+      env: {
+        PYTHONPATH: '.'
+      },
+    },
+  ],
+};
+```
+
+<sup>[Back to top ^][table-of-contents]</sup>
+
+### 3.3. Troubleshooting
 
 #### `ModuleNotFoundError: No module named 'simulation'`
 
