@@ -22,7 +22,10 @@ class MinerDataHandler:
         self.engine = engine or get_engine()
 
     def save_responses(
-        self, miner_predictions: dict, simulation_input: SimulationInput
+        self,
+        miner_predictions: dict[tuple],
+        simulation_input: SimulationInput,
+        request_time: datetime,
     ):
         """Save miner predictions and simulation input."""
 
@@ -32,6 +35,7 @@ class MinerDataHandler:
             "time_increment": simulation_input.time_increment,
             "time_length": simulation_input.time_length,
             "num_simulations": simulation_input.num_simulations,
+            "request_time": request_time.isoformat(),
         }
 
         try:
@@ -49,6 +53,7 @@ class MinerDataHandler:
                     for miner_uid, (
                         prediction,
                         format_validation,
+                        process_time,
                     ) in miner_predictions.items():
                         # If the format is not correct, we don't save the prediction
                         if format_validation != response_validation.CORRECT:
@@ -60,6 +65,7 @@ class MinerDataHandler:
                                 "miner_uid": miner_uid,
                                 "prediction": prediction,
                                 "format_validation": format_validation,
+                                "process_time": process_time,
                             }
                         )
 
@@ -217,7 +223,7 @@ class MinerDataHandler:
             bt.logging.error(f"in get_miner_scores (got an exception): {e}")
             return pd.DataFrame()
 
-    def update_miner_rewards(self, miner_rewards_data: []):
+    def update_miner_rewards(self, miner_rewards_data: list[dict]):
         try:
             with self.engine.connect() as connection:
                 with connection.begin():  # Begin a transaction

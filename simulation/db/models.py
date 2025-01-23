@@ -53,6 +53,7 @@ validator_requests = Table(
     Column("time_increment", Integer, nullable=True),
     Column("time_length", Integer, nullable=True),
     Column("num_simulations", Integer, nullable=True),
+    Column("request_time", DateTime(timezone=True), nullable=True),
 )
 
 # Define the table
@@ -64,6 +65,7 @@ miner_predictions = Table(
     Column("miner_uid", Integer, nullable=False),
     Column("prediction", JSONB, nullable=False),
     Column("format_validation", String, nullable=True),
+    Column("process_time", Float, nullable=True),
 )
 
 # Define the table

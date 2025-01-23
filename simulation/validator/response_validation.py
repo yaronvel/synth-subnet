@@ -32,12 +32,29 @@ def validate_datetime(
     return datetime.fromisoformat(dt_str), None
 
 
-def validate_responses(response, simulation_input: SimulationInput) -> str:
+def validate_responses(
+    response,
+    simulation_input: SimulationInput,
+    request_time: datetime,
+    process_time_str: typing.Optional[str],
+) -> str:
     """
     Validate responses from miners.
 
-    Return False if response is incorrect.
+    Return a string with the error message
+    if the response is not following the expected format or the response is empty,
+    otherwise, return "CORRECT".
     """
+    # check the process time
+    if process_time_str is None:
+        return "time out or internal server error (process time is None)"
+
+    received_at = request_time + timedelta(seconds=float(process_time_str))
+    start_time = datetime.fromisoformat(simulation_input.start_time)
+    if received_at > start_time:
+        return f"Response received after the simulation start time: expected {start_time}, got {received_at}"
+
+    # check if the response is empty
     if response is None or len(response) == 0:
         return "Response is empty"
 
