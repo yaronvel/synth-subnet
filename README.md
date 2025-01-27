@@ -19,7 +19,7 @@
         <b>Website</b>
     </a>
 ·
-    <a href="" target="_blank">
+    <a href="https://github.com/mode-network/synth-subnet/blob/main/Synth%20Whitepaper_V1.pdf" target="_blank">
         <b>Whitepaper</b>
     </a>
 ·
