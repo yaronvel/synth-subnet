@@ -83,7 +83,7 @@ def reward(
 
     try:
         score, detailed_crps_data = calculate_crps_for_miner(
-            np.array(predictions_path),
+            np.array(predictions_path).astype(float),
             np.array(real_price_path),
             simulation_input.time_increment,
         )
