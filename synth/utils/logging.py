@@ -33,3 +33,24 @@ def setup_events_logger(full_path, events_retention_size):
     logger.addHandler(file_handler)
 
     return logger
+
+
+def setup_wandb_alert(wandb_run):
+    class WandBHandler(logging.Handler):
+        def emit(self, record):
+            log_entry = self.format(record)
+            if record.levelno >= 40:
+                wandb_run.alert(
+                    title="An error occurred",
+                    text=log_entry,
+                    level=record.levelname,
+                )
+
+    wandb_handler = WandBHandler()
+    wandb_handler.setLevel(logging.ERROR)
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    wandb_handler.setFormatter(formatter)
+
+    return wandb_handler
