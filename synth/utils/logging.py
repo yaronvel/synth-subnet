@@ -38,12 +38,21 @@ def setup_events_logger(full_path, events_retention_size):
 def setup_wandb_alert(wandb_run):
     class WandBHandler(logging.Handler):
         def emit(self, record):
-            log_entry = self.format(record)
-            if record.levelno >= 40:
-                wandb_run.alert(
-                    title="An error occurred",
-                    text=log_entry,
-                    level=record.levelname,
+            try:
+                log_entry = self.format(record)
+                filter = "Perhaps it is too soon to set weights"
+                if filter in log_entry:
+                    print("Filtering out log entry:", log_entry)
+                    return
+                if record.levelno >= 40:
+                    wandb_run.alert(
+                        title="An error occurred",
+                        text=log_entry,
+                        level=record.levelname,
+                    )
+            except Exception:
+                print(
+                    "Error occurred while sending alert to wandb:", log_entry
                 )
 
     wandb_handler = WandBHandler()
