@@ -132,13 +132,21 @@ class Miner(BaseMinerNeuron):
         uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
         stake = self.metagraph.S[uid]
         bt.logging.info(f"Requesting UID: {uid} | Stake at UID: {stake}")
+        bt.logging.info(
+            f"Whitelisted validators: {self.config.blacklist.validator_exceptions}"
+        )
 
-        if stake <= self.config.blacklist.validator_min_stake:
-            # Ignore requests if the stake is below minimum
+        if uid in self.config.blacklist.validator_exceptions:
             bt.logging.info(
-                f"Hotkey: {synapse.dendrite.hotkey}: stake below minimum threshold of {self.config.blacklist.validator_min_stake}"
+                f"Requesting UID: {uid} whitelisted as a validator"
             )
-            return True, "Stake below minimum threshold"
+        else:
+            if stake <= self.config.blacklist.validator_min_stake:
+                # Ignore requests if the stake is below minimum
+                bt.logging.info(
+                    f"Hotkey: {synapse.dendrite.hotkey}: stake below minimum threshold of {self.config.blacklist.validator_min_stake}"
+                )
+                return True, "Stake below minimum threshold"
 
         if self.config.blacklist.force_validator_permit:
             # If the config is set to force validator permit, then we should only allow requests from validators.
