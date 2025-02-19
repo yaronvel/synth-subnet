@@ -23,7 +23,7 @@
         <b>Whitepaper</b>
     </a>
 ·
-    <a href="https://discord.gg/6Rycj8dF" target="_blank">
+    <a href="https://discord.gg/3sqFJFsz" target="_blank">
         <b>Discord</b>
     </a>
 ·
