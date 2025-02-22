@@ -25,7 +25,7 @@ import bittensor as bt
 from synth.base.miner import BaseMinerNeuron
 from synth.miner.simulations import generate_simulations
 from synth.protocol import Simulation
-
+from sigma_config import get_miner_sigma
 
 class Miner(BaseMinerNeuron):
     """
@@ -67,7 +67,12 @@ class Miner(BaseMinerNeuron):
         num_simulations = simulation_input.num_simulations
 
         # Standard deviation of the simulated price path
-        sigma = self.config.simulation.sigma
+        #sigma = self.config.simulation.sigma
+        hotkey =  self.wallet.hotkey.ss58_address
+        sigma = get_miner_sigma(hotkey)
+        bt.logging.info(
+            f"miner {hotkey} got sigma {sigma}"
+        )
 
         prediction = generate_simulations(
             start_time=dt,
