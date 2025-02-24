@@ -1,6 +1,6 @@
 
 min_sigma = 0.002
-max_sigma = 0.008
+max_sigma = 0.004
 
 m = [
     "5GbBAFs8BxtAVJPPxBFDtdYibbWCLAFdeUGhv37HyMNLjNCN",
